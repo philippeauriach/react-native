@@ -398,9 +398,12 @@ void YogaLayoutableShadowNode::layout(LayoutContext layoutContext) {
       auto newLayoutMetrics = layoutMetricsFromYogaNode(*childYogaNode);
       newLayoutMetrics.pointScaleFactor = layoutContext.pointScaleFactor;
 
-      // Adding the node to `affectedNodes` if the node's `frame` was changed.
-      if (layoutContext.affectedNodes &&
-          newLayoutMetrics.frame != childNode.getLayoutMetrics().frame) {
+      // Child node's layout has changed. When a node is added to
+      // `affectedNodes`, onLayout event is called on the component. Comparing
+      // `newLayoutMetrics.frame` with `childNode.getLayoutMetrics().frame` to
+      // detect if layout has not changed is not advised, please refer to
+      // D22999891 for details.
+      if (layoutContext.affectedNodes) {
         layoutContext.affectedNodes->push_back(&childNode);
       }
 
@@ -442,7 +445,9 @@ YGNode *YogaLayoutableShadowNode::yogaNodeCloneCallbackConnector(
   auto oldNode =
       static_cast<YogaLayoutableShadowNode *>(oldYogaNode->getContext());
 
-  auto clonedNode = oldNode->clone({});
+  auto clonedNode = oldNode->clone({ShadowNodeFragment::propsPlaceholder(),
+                                    ShadowNodeFragment::childrenPlaceholder(),
+                                    oldNode->getState()});
   parentNode->replaceChild(*oldNode, clonedNode, childIndex);
   return &static_cast<YogaLayoutableShadowNode &>(*clonedNode).yogaNode_;
 }
